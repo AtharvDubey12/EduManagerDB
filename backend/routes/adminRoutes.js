@@ -102,7 +102,7 @@ router.get('/student/:id', (req, res) => {
     const requestedId = req.params.id;
     
     const studentQuery = 'SELECT * FROM students WHERE student_id = ?';
-    const academicQuery = `SELECT s.subject_name, s.standard_fee, ar.marks, ar.grade FROM student_subjects ss JOIN Subjects s ON ss.subject_id = s.subject_id LEFT JOIN academic_records ar ON (ss.student_id = ar.student_id AND ss.subject_id = ar.subject_id) WHERE ss.student_id = ?`;
+    const academicQuery = `SELECT s.subject_name, s.standard_fee, ar.marks, ar.grade FROM student_subjects ss JOIN subjects s ON ss.subject_id = s.subject_id LEFT JOIN academic_records ar ON (ss.student_id = ar.student_id AND ss.subject_id = ar.subject_id) WHERE ss.student_id = ?`;
     const paymentQuery = `SELECT s.subject_name, fp.amount, fp.payment_date FROM fee_payments fp JOIN subjects s ON fp.subject_id = s.subject_id WHERE fp.student_id = ?`;
     const concessionQuery = `SELECT cm.reason, cm.discount_percent FROM student_concessions sc JOIN concession_master cm ON sc.concession_type_id = cm.concession_type_id WHERE sc.student_id = ?`;
 
