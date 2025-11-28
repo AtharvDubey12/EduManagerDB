@@ -15,8 +15,8 @@ app.use((req, res, next) => {
     next();
 });
 
-const adminRoutes = require('./routes/adminRoutes');
-const studentRoutes = require('./routes/studentRoutes');
+const adminRoutes = require('./routes/adminRoutes.js');
+const studentRoutes = require('./routes/studentRoutes.js');
 
 app.use('/api/admin', adminRoutes);
 
