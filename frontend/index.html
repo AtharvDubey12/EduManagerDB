@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Management System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col">
+
+    <div id="login-overlay" class="fixed inset-0 z-[100] bg-blue-900 flex items-center justify-center p-4">
+        <div class="glass max-w-4xl w-full rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row fade-in">
+            
+            <div class="md:w-1/2 bg-blue-800 p-10 text-white flex flex-col justify-center items-center text-center">
+                <i class="fas fa-university text-8xl mb-6"></i>
+                <h1 class="text-4xl font-bold mb-2">EduManager</h1>
+                <p class="text-blue-200">Secure Student Record Management Portal</p>
+            </div>
+
+            <div class="md:w-1/2 p-10 bg-white">
+                
+                <div class="flex mb-8 bg-gray-100 rounded-lg p-1">
+                    <button onclick="showLoginForm('student')" id="tab-student" class="flex-1 py-2 rounded-md font-semibold text-sm transition-all bg-white shadow text-blue-800">Student Login</button>
+                    <button onclick="showLoginForm('admin')" id="tab-admin" class="flex-1 py-2 rounded-md font-semibold text-sm transition-all text-gray-500 hover:text-gray-700">Admin Login</button>
+                </div>
+
+                <form id="form-student-login" onsubmit="handleLogin(event, 'student')" class="space-y-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Student ID</label>
+                        <div class="relative">
+                            <i class="fas fa-id-card absolute left-3 top-3 text-gray-400"></i>
+                            <input type="number" id="login-student-id" required class="w-full pl-10 p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Enter your ID (e.g. 1)">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                        <div class="relative">
+                            <i class="fas fa-lock absolute left-3 top-3 text-gray-400"></i>
+                            <input type="password" id="login-student-pass" required class="w-full pl-10 p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Enter Password">
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full bg-blue-700 hover:bg-blue-800 text-white py-3 rounded font-bold transition">Access Portal</button>
+                </form>
+
+                <form id="form-admin-login" onsubmit="handleLogin(event, 'admin')" class="hidden space-y-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Admin Password</label>
+                        <div class="relative">
+                            <i class="fas fa-lock absolute left-3 top-3 text-gray-400"></i>
+                            <input type="password" id="login-admin-pass" required class="w-full pl-10 p-2 border rounded focus:ring-2 focus:ring-red-500 outline-none" placeholder="Enter Password">
+                        </div>
+                        <p class="text-gray-700 mt-1 italic">Hint: The password is '123'</p>
+                    </div>
+                    <button type="submit" class="w-full bg-gray-800 hover:bg-black text-white py-3 rounded font-bold transition">Admin Dashboard</button>
+                </form>
+
+                <p id="login-error" class="text-red-500 text-sm text-center mt-4 hidden"></p>
+            </div>
+        </div>
+    </div>
+
+    <nav class="bg-white shadow-md z-40 relative hidden" id="app-navbar">
+        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-2 text-blue-800">
+                <i class="fas fa-graduation-cap text-2xl"></i>
+                <span class="text-xl font-bold">EduManager</span>
+                <span id="nav-role-badge" class="px-2 py-0.5 rounded text-xs uppercase font-bold text-white ml-2 bg-gray-500">Guest</span>
+            </div>
+            <div>
+                <button onclick="logout()" class="text-red-600 hover:text-red-800 font-semibold text-sm">
+                    <i class="fas fa-sign-out-alt mr-1"></i> Logout
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mx-auto px-6 py-8 flex-grow relative">
+
+        <div id="toast" class="hidden fixed top-20 right-5 px-6 py-3 rounded shadow-lg text-white font-semibold z-50 fade-in"></div>
+
+        <div id="admin-section" class="hidden fade-in">
+            <div class="bg-white p-6 rounded-lg shadow-md mb-6 border-l-4 border-gray-800 flex justify-between items-center">
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-800">Admin Control Panel</h2>
+                    <p class="text-gray-500 text-sm">Full read/write access enabled</p>
+                </div>
+                <div class="bg-gray-100 p-3 rounded-full">
+                    <i class="fas fa-user-shield text-2xl text-gray-700"></i>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                
+                <div class="bg-white p-6 rounded shadow hover:shadow-lg transition">
+                    <h3 class="text-lg font-bold mb-4 text-blue-700"><i class="fas fa-user-plus mr-2"></i>Register Student</h3>
+                    <form onsubmit="handleAdminSubmit(event, 'add-student')" class="space-y-3">
+                        <input type="text" name="name" placeholder="Full Name" required class="w-full p-2 border rounded">
+                        <input type="text" name="category" placeholder="Category" required class="w-full p-2 border rounded">
+                        <input type="password" name="password" placeholder="Set Password" required class="w-full p-2 border rounded bg-yellow-50">
+                        <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 text-sm">Register</button>
+                    </form>
+                </div>
+
+                <div class="bg-white p-6 rounded shadow hover:shadow-lg transition border-l-4 border-cyan-500">
+                    <h3 class="text-lg font-bold mb-4 text-cyan-700"><i class="fas fa-book mr-2"></i>Create New Subject</h3>
+                    <form onsubmit="handleAddSubject(event)" class="space-y-3">
+                        <input type="text" name="subject_name" placeholder="Subject Name" required class="w-full p-2 border rounded">
+                        <input type="number" name="standard_fee" placeholder="Standard Fee" step="0.01" required class="w-full p-2 border rounded">
+                        <button type="submit" class="w-full bg-cyan-600 text-white py-2 rounded hover:bg-cyan-700 text-sm">Create Subject</button>
+                    </form>
+                </div>
+
+                <div class="bg-white p-6 rounded shadow hover:shadow-lg transition">
+                    <h3 class="text-lg font-bold mb-4 text-green-700"><i class="fas fa-book-open mr-2"></i>Enroll in Subject</h3>
+                    <form onsubmit="handleAdminSubmit(event, 'enroll')" class="space-y-3">
+                        <input type="number" name="student_id" placeholder="Student ID" required class="w-full p-2 border rounded">
+                        <input type="number" name="subject_id" placeholder="Subject ID" required class="w-full p-2 border rounded">
+                        <button type="submit" class="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700 text-sm">Enroll Student</button>
+                    </form>
+                </div>
+
+                <div class="bg-white p-6 rounded shadow hover:shadow-lg transition border-l-4 border-indigo-500">
+                    <h3 class="text-lg font-bold mb-4 text-indigo-700"><i class="fas fa-search mr-2"></i>View Student Record</h3>
+                    <form onsubmit="adminFetchStudent(event)" class="space-y-3">
+                        <input type="number" id="admin-search-id" placeholder="Enter Student ID" required class="w-full p-2 border rounded">
+                        <button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded hover:bg-indigo-700 text-sm">Search Records</button>
+                    </form>
+                </div>
+
+                <div class="bg-white p-6 rounded shadow hover:shadow-lg transition border-l-4 border-teal-500">
+                    <h3 class="text-lg font-bold mb-4 text-teal-700"><i class="fas fa-list mr-2"></i>View Subject List</h3>
+                    <form onsubmit="handleViewSubjectEnrollments(event)" class="space-y-3">
+                        <input type="number" name="subject_id" placeholder="Enter Subject ID" required class="w-full p-2 border rounded">
+                        <button type="submit" class="w-full bg-teal-600 text-white py-2 rounded hover:bg-teal-700 text-sm">Fetch Students</button>
+                    </form>
+                </div>
+
+                <div class="bg-white p-6 rounded shadow hover:shadow-lg transition">
+                    <h3 class="text-lg font-bold mb-4 text-purple-700"><i class="fas fa-star mr-2"></i>Update Marks</h3>
+                    <form onsubmit="handleAdminSubmit(event, 'update-marks')" class="space-y-3">
+                        <div class="flex space-x-2">
+                            <input type="number" name="student_id" placeholder="St ID" required class="w-1/2 p-2 border rounded">
+                            <input type="number" name="subject_id" placeholder="Sub ID" required class="w-1/2 p-2 border rounded">
+                        </div>
+                        <div class="flex space-x-2">
+                            <input type="number" name="marks" placeholder="Marks" step="0.01" required class="w-1/2 p-2 border rounded">
+                            <input type="text" name="grade" placeholder="Grade" required class="w-1/2 p-2 border rounded">
+                        </div>
+                        <button type="submit" class="w-full bg-purple-600 text-white py-2 rounded hover:bg-purple-700 text-sm">Update</button>
+                    </form>
+                </div>
+
+                <div class="bg-white p-6 rounded shadow hover:shadow-lg transition">
+                    <h3 class="text-lg font-bold mb-4 text-yellow-700"><i class="fas fa-money-bill-wave mr-2"></i>Record Payment</h3>
+                    <form onsubmit="handleAdminSubmit(event, 'pay-fee')" class="space-y-3">
+                        <input type="number" name="student_id" placeholder="Student ID" required class="w-full p-2 border rounded">
+                        <input type="number" name="subject_id" placeholder="Subject ID" required class="w-full p-2 border rounded">
+                        <input type="number" name="amount" placeholder="Amount" step="0.01" required class="w-full p-2 border rounded">
+                        <button type="submit" class="w-full bg-yellow-600 text-white py-2 rounded hover:bg-yellow-700 text-sm">Record Payment</button>
+                    </form>
+                </div>
+
+                <div class="bg-white p-6 rounded shadow hover:shadow-lg transition border-l-4 border-pink-500">
+                    <h3 class="text-lg font-bold mb-4 text-pink-700"><i class="fas fa-hand-holding-usd mr-2"></i>Grant Concession</h3>
+                    <form onsubmit="handleAdminSubmit(event, 'assign-concession')" class="space-y-3">
+                        <div class="flex space-x-2">
+                            <input type="number" name="student_id" placeholder="St ID" required class="w-1/2 p-2 border rounded">
+                            <input type="number" name="concession_type_id" placeholder="Conc ID" required class="w-1/2 p-2 border rounded">
+                        </div>
+                        <button type="submit" class="w-full bg-pink-600 text-white py-2 rounded hover:bg-pink-700 text-sm">Apply</button>
+                    </form>
+                </div>
+
+                <div class="bg-white p-6 rounded shadow hover:shadow-lg transition border-l-4 border-red-500">
+                    <h3 class="text-lg font-bold mb-4 text-red-700"><i class="fas fa-plus-circle mr-2"></i>New Concession Type</h3>
+                    <form onsubmit="handleAddConcessionType(event)" class="space-y-3">
+                        <input type="text" name="reason" placeholder="Reason Name" required class="w-full p-2 border rounded">
+                        <input type="number" name="discount_percent" placeholder="Discount %" required class="w-full p-2 border rounded">
+                        <button type="submit" class="w-full bg-red-600 text-white py-2 rounded hover:bg-red-700 text-sm">Create Rule</button>
+                    </form>
+                </div>
+            </div>
+
+            <div id="admin-student-result" class="hidden bg-gray-50 border-t-4 border-indigo-600 p-6 shadow-inner mb-8">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-2xl font-bold text-gray-800">Student Record Details</h3>
+                    <button onclick="document.getElementById('admin-student-result').classList.add('hidden')" class="text-red-500 hover:text-red-700"><i class="fas fa-times"></i> Close</button>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-white p-4 rounded shadow">
+                        <h4 class="font-bold text-lg mb-2 text-indigo-700">Profile</h4>
+                        <p><strong>Name:</strong> <span id="adm-st-name"></span></p>
+                        <p><strong>ID:</strong> <span id="adm-st-id"></span></p>
+                        <p><strong>Category:</strong> <span id="adm-st-category"></span></p>
+                        <p><strong>Concessions:</strong> <span id="adm-st-conc" class="text-green-600"></span></p>
+                    </div>
+                    <div class="bg-white p-4 rounded shadow">
+                        <h4 class="font-bold text-lg mb-2 text-indigo-700">Financials</h4>
+                        <p><strong>Raw Fee:</strong> INR<span id="adm-fin-raw"></span></p>
+                        <p><strong>Discount:</strong> <span class="text-green-600">-INR<span id="adm-fin-disc"></span></span></p>
+                        <p class="text-xl font-bold mt-2">Balance Due: INR<span id="adm-fin-bal" class="text-red-600"></span></p>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 rounded shadow mt-6">
+                    <h4 class="font-bold text-lg mb-2 text-indigo-700">Academic & Payment History</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <h5 class="font-semibold border-b">Academics</h5>
+                            <ul id="adm-academic-list" class="list-disc pl-5 mt-2 text-sm text-gray-700"></ul>
+                        </div>
+                        <div>
+                            <h5 class="font-semibold border-b">Payments</h5>
+                            <ul id="adm-payment-list" class="list-disc pl-5 mt-2 text-sm text-gray-700"></ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="admin-subject-result" class="hidden bg-gray-50 border-t-4 border-teal-600 p-6 shadow-inner">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-2xl font-bold text-gray-800">Subject Enrollments: <span id="adm-sub-name" class="text-teal-700"></span></h3>
+                    <button onclick="document.getElementById('admin-subject-result').classList.add('hidden')" class="text-red-500 hover:text-red-700"><i class="fas fa-times"></i> Close</button>
+                </div>
+                <div class="bg-white p-6 rounded shadow">
+                    <table class="w-full text-left">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="p-2 border-b">Student ID</th>
+                                <th class="p-2 border-b">Name</th>
+                                <th class="p-2 border-b">Category</th>
+                                <th class="p-2 border-b">Enrollment Date</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adm-subject-list">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
+        <div id="student-section" class="hidden fade-in">
+            <div id="student-dashboard" class="space-y-6">
+                <div class="bg-white p-6 rounded shadow border-l-4 border-indigo-500 flex justify-between items-center">
+                    <div>
+                        <h2 id="st-name" class="text-3xl font-bold text-gray-800">...</h2>
+                        <p id="st-category" class="text-gray-600">Category: ...</p>
+                        <p id="st-conc" class="text-green-600 text-sm mt-1"></p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-sm text-gray-500">Student ID</p>
+                        <p id="st-id" class="text-2xl font-bold text-indigo-600">#</p>
+                    </div>
+                </div>
+
+          
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-gray-50 p-4 rounded border">
+                        <p class="text-gray-600 font-bold">Standard Fee Total</p>
+                        <p id="fin-raw" class="text-xl font-bold text-gray-800">INR 0.00</p>
+                    </div>
+                    <div class="bg-green-50 p-4 rounded border border-green-200">
+                        <p class="text-green-600 font-bold">Discount Applied</p>
+                        <p id="fin-disc" class="text-xl font-bold text-green-700">-INR 0.00</p>
+                    </div>
+                    <div class="bg-red-50 p-4 rounded border border-red-200">
+                        <p class="text-red-600 font-bold">Final Balance Due</p>
+                        <p id="fin-bal" class="text-2xl font-bold text-red-700">INR 0.00</p>
+                    </div>
+                </div>
+
+        
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-white p-6 rounded shadow">
+                        <h3 class="text-xl font-bold mb-4 border-b pb-2">Academic Record</h3>
+                        <table class="w-full text-left">
+                            <thead class="bg-gray-100"><tr><th class="p-2">Subject</th><th class="p-2">Marks</th><th class="p-2">Grade</th></tr></thead>
+                            <tbody id="academic-table-body"></tbody>
+                        </table>
+                    </div>
+                    <div class="bg-white p-6 rounded shadow">
+                        <h3 class="text-xl font-bold mb-4 border-b pb-2">Payment History</h3>
+                        <table class="w-full text-left">
+                            <thead class="bg-gray-100"><tr><th class="p-2">Date</th><th class="p-2">Subject</th><th class="p-2">Amount</th></tr></thead>
+                            <tbody id="payment-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:5000/api';
+        
+        let CURRENT_ROLE = null;
+        let CURRENT_STUDENT_ID = null;
+
+        function showLoginForm(role) {
+            document.getElementById('login-error').classList.add('hidden');
+            if (role === 'admin') {
+                document.getElementById('form-admin-login').classList.remove('hidden');
+                document.getElementById('form-student-login').classList.add('hidden');
+                document.getElementById('tab-admin').classList.add('bg-white', 'shadow', 'text-gray-800');
+                document.getElementById('tab-admin').classList.remove('text-gray-500');
+                document.getElementById('tab-student').classList.remove('bg-white', 'shadow', 'text-blue-800');
+                document.getElementById('tab-student').classList.add('text-gray-500');
+            } else {
+                document.getElementById('form-student-login').classList.remove('hidden');
+                document.getElementById('form-admin-login').classList.add('hidden');
+                document.getElementById('tab-student').classList.add('bg-white', 'shadow', 'text-blue-800');
+                document.getElementById('tab-student').classList.remove('text-gray-500');
+                document.getElementById('tab-admin').classList.remove('bg-white', 'shadow', 'text-gray-800');
+                document.getElementById('tab-admin').classList.add('text-gray-500');
+            }
+        }
+
+        async function handleLogin(event, role) {
+            event.preventDefault();
+            const errorText = document.getElementById('login-error');
+            errorText.classList.add('hidden');
+
+            if (role === 'admin') {
+                const pass = document.getElementById('login-admin-pass').value;
+                if (pass === '123') {
+                    CURRENT_ROLE = 'admin';
+                    document.getElementById('login-overlay').classList.add('hidden');
+                    document.getElementById('app-navbar').classList.remove('hidden');
+                    document.getElementById('admin-section').classList.remove('hidden');
+                    updateNavBadge('Administrator', 'bg-red-600');
+                } else {
+                    errorText.innerText = 'Incorrect Password!';
+                    errorText.classList.remove('hidden');
+                }
+            } else {
+                const id = document.getElementById('login-student-id').value;
+                const pass = document.getElementById('login-student-pass').value;
+                
+                if (!id || !pass) {
+                    errorText.innerText = 'Please enter both ID and Password';
+                    errorText.classList.remove('hidden');
+                    return;
+                }
+
+                try {
+                  
+                    const loginRes = await fetch(`${API_URL}/student/login`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ student_id: id, password: pass })
+                    });
+                    
+                    const loginData = await loginRes.json();
+                    
+                    if (loginRes.ok && loginData.success) {
+                       
+                        const res = await fetch(`${API_URL}/student/${id}/dashboard`, {
+                            headers: { 'x-role': 'student', 'x-user-id': id }
+                        });
+                        
+                        if (res.ok) {
+                            const data = await res.json();
+                            CURRENT_ROLE = 'student';
+                            CURRENT_STUDENT_ID = id;
+                            
+                            document.getElementById('login-overlay').classList.add('hidden');
+                            document.getElementById('app-navbar').classList.remove('hidden');
+                            document.getElementById('student-section').classList.remove('hidden');
+                            updateNavBadge('Student Portal', 'bg-blue-600');
+                            
+                            renderStudentDashboard(data);
+                        } else {
+                            errorText.innerText = 'Error fetching student dashboard.';
+                            errorText.classList.remove('hidden');
+                        }
+                    } else {
+                        errorText.innerText = loginData.error || 'Invalid ID or Password';
+                        errorText.classList.remove('hidden');
+                    }
+                } catch (e) {
+                    errorText.innerText = 'Server Error: Is backend running?';
+                    errorText.classList.remove('hidden');
+                    console.error(e);
+                }
+            }
+        }
+
+        function logout() {
+            CURRENT_ROLE = null;
+            CURRENT_STUDENT_ID = null;
+            
+            document.getElementById('login-overlay').classList.remove('hidden');
+            document.getElementById('app-navbar').classList.add('hidden');
+            document.getElementById('admin-section').classList.add('hidden');
+            document.getElementById('student-section').classList.add('hidden');
+        
+            document.getElementById('login-admin-pass').value = '';
+            document.getElementById('login-student-id').value = '';
+            document.getElementById('login-student-pass').value = ''; 
+            document.getElementById('admin-student-result').classList.add('hidden');
+            document.getElementById('admin-subject-result').classList.add('hidden');
+            
+            showLoginForm('student');
+        }
+
+        function updateNavBadge(text, colorClass) {
+            const badge = document.getElementById('nav-role-badge');
+            badge.innerText = text;
+            badge.className = `px-2 py-0.5 rounded text-xs uppercase font-bold text-white ml-2 ${colorClass}`;
+        }
+
+        function showToast(msg, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.innerText = msg;
+            toast.className = `fixed top-20 right-5 px-6 py-3 rounded shadow-lg text-white font-semibold z-50 fade-in ${type === 'success' ? 'bg-green-500' : 'bg-red-500'}`;
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 3000);
+        }
+
+      
+
+        async function handleAddSubject(event) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            const data = Object.fromEntries(formData.entries());
+            try {
+                const res = await fetch(`${API_URL}/admin/add-subject`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-role': 'admin' },
+                    body: JSON.stringify(data)
+                });
+                const result = await res.json();
+                if(res.ok) { 
+                    showToast(result.message); 
+                    event.target.reset(); 
+                    alert(`Subject Created! Auto-generated ID: ${result.subjectId}`); 
+                } else showToast(result.error, 'error');
+            } catch(e) { console.error(e); }
+        }
+
+        async function handleViewSubjectEnrollments(event) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            const id = formData.get('subject_id');
+            try {
+                const res = await fetch(`${API_URL}/admin/subject/${id}/students`, { 
+                    headers: { 'x-role': 'admin' } 
+                });
+                const data = await res.json();
+                if(!res.ok) return showToast(data.error, 'error');
+
+                document.getElementById('admin-subject-result').classList.remove('hidden');
+                document.getElementById('adm-sub-name').innerText = data.subject.subject_name;
+                
+                const tbody = document.getElementById('adm-subject-list');
+                tbody.innerHTML = '';
+                if(data.students.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-gray-500">No students enrolled yet.</td></tr>';
+                } else {
+                    data.students.forEach(st => {
+                        const row = `
+                            <tr class="border-b hover:bg-gray-50">
+                                <td class="p-2 font-bold">#${st.student_id}</td>
+                                <td class="p-2">${st.name}</td>
+                                <td class="p-2">${st.category}</td>
+                                <td class="p-2">${new Date(st.enrollment_date).toLocaleDateString()}</td>
+                            </tr>
+                        `;
+                        tbody.innerHTML += row;
+                    });
+                }
+            } catch(e) { console.error(e); showToast('Error fetching data', 'error'); }
+        }
+
+    
+
+        async function handleAddConcessionType(event) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            const data = Object.fromEntries(formData.entries());
+            try {
+                const res = await fetch(`${API_URL}/admin/add-concession`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-role': 'admin' },
+                    body: JSON.stringify(data)
+                });
+                const result = await res.json();
+                if(res.ok) { showToast(result.message); event.target.reset(); alert(`ID: ${result.concessionId}`); }
+                else showToast(result.error, 'error');
+            } catch(e) { console.error(e); }
+        }
+
+        async function handleAdminSubmit(event, endpoint) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            const data = Object.fromEntries(formData.entries());
+            try {
+                const res = await fetch(`${API_URL}/admin/${endpoint}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-role': 'admin' },
+                    body: JSON.stringify(data)
+                });
+                const result = await res.json();
+                if (res.ok) { 
+                    showToast(result.message); 
+                    event.target.reset();
+                    if(result.studentId) alert(`Student ID: ${result.studentId}`);
+                } else showToast(result.error, 'error');
+            } catch (e) { console.error(e); }
+        }
+
+        async function adminFetchStudent(event) {
+            event.preventDefault();
+            const id = document.getElementById('admin-search-id').value;
+            try {
+                const res = await fetch(`${API_URL}/admin/student/${id}`, { headers: { 'x-role': 'admin' } });
+                const data = await res.json();
+                if(!res.ok) return showToast(data.error, 'error');
+
+                document.getElementById('admin-student-result').classList.remove('hidden');
+                document.getElementById('adm-st-name').innerText = data.profile.name;
+                document.getElementById('adm-st-id').innerText = data.profile.student_id;
+                document.getElementById('adm-st-category').innerText = data.profile.category;
+                document.getElementById('adm-st-conc').innerText = data.profile.active_concessions || 'None';
+                document.getElementById('adm-fin-raw').innerText = data.financial_summary.raw_total;
+                document.getElementById('adm-fin-disc').innerText = data.financial_summary.discount_amount.toFixed(2);
+                document.getElementById('adm-fin-bal').innerText = data.financial_summary.balance.toFixed(2);
+                document.getElementById('adm-academic-list').innerHTML = data.academics.map(a => `<li>${a.subject_name}: <b>${a.marks || '-'}</b> (${a.grade || 'NA'})</li>`).join('');
+                document.getElementById('adm-payment-list').innerHTML = data.payments.length ? data.payments.map(p => `<li>${new Date(p.payment_date).toLocaleDateString()} - INR${p.amount}</li>`).join('') : '<li>No payments</li>';
+            } catch (e) { showToast('Error fetching data', 'error'); }
+        }
+
+
+        function renderStudentDashboard(data) {
+            document.getElementById('st-name').innerText = data.profile.name;
+            document.getElementById('st-category').innerText = data.profile.category;
+            document.getElementById('st-id').innerText = `#${data.profile.student_id}`;
+            document.getElementById('st-conc').innerText = data.profile.active_concessions ? `Concessions: ${data.profile.active_concessions}` : '';
+
+            document.getElementById('fin-raw').innerText = `INR${data.financial_summary.raw_total}`;
+            document.getElementById('fin-disc').innerText = `-INR${data.financial_summary.discount_amount.toFixed(2)}`;
+            document.getElementById('fin-bal').innerText = `INR${data.financial_summary.balance.toFixed(2)}`;
+
+            document.getElementById('academic-table-body').innerHTML = data.academics.map(r => `<tr class="border-b hover:bg-gray-50"><td class="p-2">${r.subject_name}</td><td class="p-2 font-bold">${r.marks||'-'}</td><td class="p-2">${r.grade||'Pending'}</td></tr>`).join('');
+            document.getElementById('payment-table-body').innerHTML = data.payments.length ? data.payments.map(r => `<tr class="border-b hover:bg-gray-50"><td class="p-2">${new Date(r.payment_date).toLocaleDateString()}</td><td class="p-2">${r.subject_name}</td><td class="p-2 text-green-600 font-bold">${r.amount}</td></tr>`).join('') : '<tr><td colspan="3" class="p-2 text-gray-500">No payments</td></tr>';
+        }
+
+        showLoginForm('student');
+    </script>
+</body>
+</html>
