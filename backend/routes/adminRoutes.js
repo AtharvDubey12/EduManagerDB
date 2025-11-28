@@ -26,7 +26,7 @@ router.post('/enroll', (req, res) => {
     const { student_id, subject_id } = req.body;
     if (!student_id || !subject_id) return res.status(400).json({ error: "Missing IDs" });
 
-    const sql = 'INSERT INTO Student_Subjects (student_id, subject_id, enrollment_date) VALUES (?, ?, NOW())';
+    const sql = 'INSERT INTO student_subjects (student_id, subject_id, enrollment_date) VALUES (?, ?, NOW())';
     db.query(sql, [student_id, subject_id], (err, result) => {
         if (err) {
             if (err.code === 'ER_NO_REFERENCED_ROW_2') return res.status(400).json({ error: "Invalid Student or Subject ID." });
@@ -39,18 +39,18 @@ router.post('/enroll', (req, res) => {
 
 router.post('/update-marks', (req, res) => {
     const { student_id, subject_id, marks, grade } = req.body;
-    const checkSql = 'SELECT * FROM Academic_Records WHERE student_id = ? AND subject_id = ?';
+    const checkSql = 'SELECT * FROM academic_records WHERE student_id = ? AND subject_id = ?';
     
     db.query(checkSql, [student_id, subject_id], (err, results) => {
         if (err) return res.status(500).json({ error: err.message });
         if (results.length > 0) {
-            const updateSql = 'UPDATE Academic_Records SET marks = ?, grade = ? WHERE student_id = ? AND subject_id = ?';
+            const updateSql = 'UPDATE academic_records SET marks = ?, grade = ? WHERE student_id = ? AND subject_id = ?';
             db.query(updateSql, [marks, grade, student_id, subject_id], (err) => {
                 if (err) return res.status(500).json({ error: err.message });
                 res.json({ message: 'Marks updated.' });
             });
         } else {
-            const insertSql = 'INSERT INTO Academic_Records (student_id, subject_id, marks, grade) VALUES (?, ?, ?, ?)';
+            const insertSql = 'INSERT INTO academic_records (student_id, subject_id, marks, grade) VALUES (?, ?, ?, ?)';
             db.query(insertSql, [student_id, subject_id, marks, grade], (err) => {
                 if (err) return res.status(500).json({ error: err.message });
                 res.json({ message: 'Marks added.' });
@@ -61,7 +61,7 @@ router.post('/update-marks', (req, res) => {
 
 router.post('/pay-fee', (req, res) => {
     const { student_id, subject_id, amount } = req.body;
-    const sql = 'INSERT INTO Fee_Payments (student_id, subject_id, amount) VALUES (?, ?, ?)';
+    const sql = 'INSERT INTO fee_payments (student_id, subject_id, amount) VALUES (?, ?, ?)';
     db.query(sql, [student_id, subject_id, amount], (err, result) => {
         if (err) return res.status(500).json({ error: err.message });
         res.json({ message: 'Payment recorded successfully.' });
@@ -74,7 +74,7 @@ router.post('/add-concession', (req, res) => {
         return res.status(400).json({ error: "Reason and Discount Percent are required." });
     }
 
-    const sql = 'INSERT INTO Concession_Master (reason, discount_percent) VALUES (?, ?)';
+    const sql = 'INSERT INTO concession_master (reason, discount_percent) VALUES (?, ?)';
     db.query(sql, [reason, discount_percent], (err, result) => {
         if (err) return res.status(500).json({ error: err.message });
         res.json({ message: 'New concession type created successfully!', concessionId: result.insertId });
@@ -87,7 +87,7 @@ router.post('/assign-concession', (req, res) => {
         return res.status(400).json({ error: "Student ID and Concession Type ID are required." });
     }
 
-    const sql = 'INSERT INTO Student_Concessions (student_id, concession_type_id) VALUES (?, ?)';
+    const sql = 'INSERT INTO student_concessions (student_id, concession_type_id) VALUES (?, ?)';
     db.query(sql, [student_id, concession_type_id], (err, result) => {
         if (err) {
             if (err.code === 'ER_NO_REFERENCED_ROW_2') return res.status(400).json({ error: "Invalid Student ID or Concession ID." });
@@ -101,10 +101,10 @@ router.post('/assign-concession', (req, res) => {
 router.get('/student/:id', (req, res) => {
     const requestedId = req.params.id;
     
-    const studentQuery = 'SELECT * FROM Students WHERE student_id = ?';
-    const academicQuery = `SELECT s.subject_name, s.standard_fee, ar.marks, ar.grade FROM Student_Subjects ss JOIN Subjects s ON ss.subject_id = s.subject_id LEFT JOIN Academic_Records ar ON (ss.student_id = ar.student_id AND ss.subject_id = ar.subject_id) WHERE ss.student_id = ?`;
-    const paymentQuery = `SELECT s.subject_name, fp.amount, fp.payment_date FROM Fee_Payments fp JOIN Subjects s ON fp.subject_id = s.subject_id WHERE fp.student_id = ?`;
-    const concessionQuery = `SELECT cm.reason, cm.discount_percent FROM Student_Concessions sc JOIN Concession_Master cm ON sc.concession_type_id = cm.concession_type_id WHERE sc.student_id = ?`;
+    const studentQuery = 'SELECT * FROM students WHERE student_id = ?';
+    const academicQuery = `SELECT s.subject_name, s.standard_fee, ar.marks, ar.grade FROM student_subjects ss JOIN Subjects s ON ss.subject_id = s.subject_id LEFT JOIN academic_records ar ON (ss.student_id = ar.student_id AND ss.subject_id = ar.subject_id) WHERE ss.student_id = ?`;
+    const paymentQuery = `SELECT s.subject_name, fp.amount, fp.payment_date FROM fee_payments fp JOIN subjects s ON fp.subject_id = s.subject_id WHERE fp.student_id = ?`;
+    const concessionQuery = `SELECT cm.reason, cm.discount_percent FROM student_concessions sc JOIN concession_master cm ON sc.concession_type_id = cm.concession_type_id WHERE sc.student_id = ?`;
 
     db.query(studentQuery, [requestedId], (err, studentResult) => {
         if (err) return res.status(500).send(err);
@@ -159,7 +159,7 @@ router.post('/add-subject', (req, res) => {
         return res.status(400).json({ error: "Subject Name and Fee are required" });
     }
 
-    const sql = 'INSERT INTO Subjects (subject_name, standard_fee) VALUES (?, ?)';
+    const sql = 'INSERT INTO subjects (subject_name, standard_fee) VALUES (?, ?)';
     db.query(sql, [subject_name, standard_fee], (err, result) => {
         if (err) return res.status(500).json({ error: err.message });
         res.json({ message: 'Subject created successfully!', subjectId: result.insertId });
@@ -170,12 +170,12 @@ router.get('/subject/:id/students', (req, res) => {
     const subjectId = req.params.id;
 
     
-    const subjectSql = 'SELECT subject_name FROM Subjects WHERE subject_id = ?';
+    const subjectSql = 'SELECT subject_name FROM subjects WHERE subject_id = ?';
   
     const studentSql = `
         SELECT s.student_id, s.name, s.category, ss.enrollment_date 
-        FROM Student_Subjects ss
-        JOIN Students s ON ss.student_id = s.student_id
+        FROM student_subjects ss
+        JOIN students s ON ss.student_id = s.student_id
         WHERE ss.subject_id = ?
     `;
 
