@@ -14,7 +14,7 @@ router.use(ensureAdmin);
 router.post('/add-student', (req, res) => {
     const { name, category, password } = req.body;
     const finalPassword = password || '123';
-    const sql = 'INSERT INTO Students (name, category, password) VALUES (?, ?, ?)';
+    const sql = 'INSERT INTO students (name, category, password) VALUES (?, ?, ?)';
     
     db.query(sql, [name, category, finalPassword], (err, result) => {
         if (err) return res.status(500).json({ error: err.message });
